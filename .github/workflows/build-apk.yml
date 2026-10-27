@@ -23,7 +23,9 @@ jobs:
       - name: Test linkherkenning
         run: bash tests/test-links.sh
       - name: Installeer Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
       - name: Installeer Android SDK 35
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Installeer Gradle 8.9

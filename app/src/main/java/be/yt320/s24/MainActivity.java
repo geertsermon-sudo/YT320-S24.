@@ -27,7 +27,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.yausername.youtubedl_android.FFmpeg;
+import com.yausername.ffmpeg.FFmpeg;
 import com.yausername.youtubedl_android.YoutubeDL;
 import com.yausername.youtubedl_android.YoutubeDLRequest;
 
@@ -208,12 +208,15 @@ public final class MainActivity extends Activity {
             request.addOption("--no-mtime");
             request.addOption("--output", new File(directory, "%(title).150B [%(id)s].%(ext)s").getAbsolutePath());
             post("Audio downloaden…");
-            YoutubeDL.getInstance().execute(request, (progress, eta) -> runOnUiThread(() -> {
+            YoutubeDL.getInstance().execute(request, null, false, (progress, eta, line) -> {
+                runOnUiThread(() -> {
                 int pct = Math.max(0, Math.min(100, Math.round(progress)));
                 progressBar.setProgress(pct);
                 statusView.setText(pct >= 99 ? "Omzetten naar MP3…" :
                     String.format(Locale.getDefault(), "Downloaden: %d%%", pct));
-            }));
+                });
+                return kotlin.Unit.INSTANCE;
+            });
             File[] mp3s = directory.listFiles((d, n) -> n.toLowerCase(Locale.ROOT).endsWith(".mp3"));
             if (mp3s == null || mp3s.length == 0) throw new IllegalStateException("Geen MP3 gemaakt.");
             Arrays.sort(mp3s, Comparator.comparingLong(File::lastModified).reversed());

@@ -1,0 +1,46 @@
+name: Bouw YT320 APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: yt320-build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Haal broncode op
+        uses: actions/checkout@v4
+      - name: Stel Java 17 in
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Test linkherkenning
+        run: bash tests/test-links.sh
+      - name: Installeer Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Installeer Android SDK 35
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Installeer Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Bouw Android APK
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Controleer APK
+        run: |
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          unzip -t app/build/outputs/apk/debug/app-debug.apk | tail -1
+          cp app/build/outputs/apk/debug/app-debug.apk YT320-S24.apk
+          sha256sum YT320-S24.apk > YT320-S24.apk.sha256
+      - name: Publiceer APK als GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="build-$(echo "$GITHUB_SHA" | cut -c1-12)"
+          gh release create "$TAG" YT320-S24.apk YT320-S24.apk.sha256 --target "$GITHUB_SHA" --title "YT320 S24 test-APK" --notes "Android debug-testbuild. Nog niet getest op een echte Samsung S24; download YT320-S24.apk."

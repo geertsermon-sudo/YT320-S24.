@@ -6,6 +6,7 @@ import android.content.ClipboardManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -49,7 +50,8 @@ public final class MainActivity extends Activity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private EditText urlInput;
-    private Button downloadButton, pasteButton;
+    private Button downloadButton, pasteButton, copyErrorButton;
+    private String lastFullError;
     private TextView statusView, infoView;
     private ProgressBar progressBar;
     private boolean busy, shareStarted;
@@ -137,6 +139,21 @@ public final class MainActivity extends Activity {
         panel.addView(statusView, statusParams);
         infoView = text("MP3 · doel 320 kbps · Downloads", 13, MUTED, false);
         panel.addView(infoView);
+        infoView.setTextIsSelectable(true);
+        copyErrorButton = button("Kopieer foutmelding", PANEL, ACCENT);
+        LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(-1, dp(48));
+        copyParams.topMargin = dp(12);
+        panel.addView(copyErrorButton, copyParams);
+        copyErrorButton.setVisibility(View.GONE);
+        copyErrorButton.setOnClickListener(v -> {
+            if (lastFullError == null) return;
+            ClipboardManager clipboard =
+                (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(ClipData.newPlainText("YT320 fout", lastFullError));
+                Toast.makeText(this, "Foutmelding gekopieerd.", Toast.LENGTH_SHORT).show();
+            }
+        });
         TextView foot = text("Tip: YouTube → Delen → YT320.\nHet downloaden start meteen.", 14, MUTED, false);
         LinearLayout.LayoutParams footParams = new LinearLayout.LayoutParams(-1, -2);
         footParams.topMargin = dp(25);
@@ -178,6 +195,8 @@ public final class MainActivity extends Activity {
             return;
         }
         busy = true;
+        lastFullError = null;
+        copyErrorButton.setVisibility(View.GONE);
         downloadButton.setEnabled(false);
         pasteButton.setEnabled(false);
         downloadButton.setAlpha(0.6f);
@@ -198,6 +217,23 @@ public final class MainActivity extends Activity {
             post("Downloadmotor starten…");
             YoutubeDL.getInstance().init(getApplicationContext());
             FFmpeg.getInstance().init(getApplicationContext());
+
+            // Update yt-dlp from the official stable release once per day.
+            // On failure, keep working with the bundled version.
+            SharedPreferences prefs = getSharedPreferences("yt320", MODE_PRIVATE);
+            long now = System.currentTimeMillis();
+            long lastCheck = prefs.getLong("last_yt_dlp_check", 0L);
+            if (lastCheck == 0L || now - lastCheck > 24L * 60L * 60L * 1000L) {
+                post("Downloadmotor bijwerken…");
+                try {
+                    YoutubeDL.getInstance().updateYoutubeDL(
+                        getApplicationContext(), YoutubeDL.UpdateChannel._STABLE);
+                    prefs.edit().putLong("last_yt_dlp_check", now).apply();
+                } catch (Exception ignored) {
+                    // A temporary GitHub/network outage must not block a download.
+                }
+            }
+
             YoutubeDLRequest request = new YoutubeDLRequest(url);
             request.addOption("--no-playlist");
             request.addOption("--format", "bestaudio/best");
@@ -231,11 +267,14 @@ public final class MainActivity extends Activity {
                 reset();
             });
         } catch (Exception ex) {
+            final String completeError = ex.getMessage() == null
+                ? ex.toString() : ex.getMessage();
+            final String displayedError = YtDlpErrors.extract(completeError);
             runOnUiThread(() -> {
                 statusView.setText("Download mislukt.");
-                String message = ex.getMessage();
-                infoView.setText(message == null ? "Kan deze video niet downloaden." :
-                    message.substring(0, Math.min(180, message.length())));
+                infoView.setText(displayedError);
+                lastFullError = completeError;
+                copyErrorButton.setVisibility(View.VISIBLE);
                 reset();
             });
         } finally {

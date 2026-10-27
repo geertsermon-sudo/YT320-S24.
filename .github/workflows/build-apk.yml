@@ -38,11 +38,11 @@ jobs:
         run: |
           test -s app/build/outputs/apk/debug/app-debug.apk
           unzip -t app/build/outputs/apk/debug/app-debug.apk | tail -1
-          cp app/build/outputs/apk/debug/app-debug.apk YT320-S24.apk
-          sha256sum YT320-S24.apk > YT320-S24.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk YT320-S24-v1.0.1.apk
+          sha256sum YT320-S24-v1.0.1.apk > YT320-S24-v1.0.1.apk.sha256
       - name: Publiceer APK als GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="build-$(echo "$GITHUB_SHA" | cut -c1-12)"
-          gh release create "$TAG" YT320-S24.apk YT320-S24.apk.sha256 --target "$GITHUB_SHA" --title "YT320 S24 test-APK" --notes "Android debug-testbuild. Nog niet getest op een echte Samsung S24; download YT320-S24.apk."
+          gh release create "$TAG" YT320-S24-v1.0.1.apk YT320-S24-v1.0.1.apk.sha256 --target "$GITHUB_SHA" --title "YT320 S24 test-APK" --notes "Android debug-testbuild. Nog niet getest op een echte Samsung S24; download YT320-S24-v1.0.1.apk."

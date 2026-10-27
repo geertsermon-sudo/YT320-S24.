@@ -8,10 +8,14 @@ Eenvoudige Android-app: deel een YouTube-link met **YT320** of plak de link, en 
 - De MP3-conversie verhoogt de audiokwaliteit van de bron **niet**
 - Download uitsluitend materiaal dat je mag downloaden
 - Houd de app open tijdens een download
+- Bij de eerste download controleert de app automatisch of yt-dlp bijgewerkt moet worden
+- Als de download faalt, toont de app de echte fout en biedt een kopieerknop
 
 ## APK bouwen
 
 Elke push naar `main` start **Actions → Bouw YT320 APK**. Als de workflow volledig slaagt, wordt de debug-APK beschikbaar onder **Releases** als `YT320-S24.apk`, zonder gebruik van GitHub Actions-artifactopslag.
+
+Let op: elke Actions-testbuild kan met een andere tijdelijke debug-sleutel ondertekend zijn. Als de nieuwe APK niet over de oude installeert, verwijder dan alleen de vorige YT320-testapp (niet je MP3-bestanden in Downloads) voordat je opnieuw installeert.
 
 Dit is een testbuild; hij wordt automatisch ondertekend met een tijdelijke debugsleutel. Niet geschikt als officiële Play Store-release. De app moet nog op een echte Samsung S24 worden getest.
 
